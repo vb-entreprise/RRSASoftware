@@ -34,6 +34,13 @@ export interface TreatmentDay {
   medication: boolean;
   injectable: boolean;
   surgery: boolean;
+  other: boolean;
+  dressing_by?: string;
+  medication_by?: string;
+  injectable_by?: string;
+  surgery_by?: string;
+  other_by?: string;
+  other_treatment?: string;
   remark: string;
 }
 
@@ -50,6 +57,8 @@ export interface CasePaper extends BaseDocument {
   rescue_by: string;
   sex: string;
   admitted: boolean;
+  admission_date?: string;
+  release_death_date?: string;
   history?: string;
   symptoms?: string;
   treatment?: string;
@@ -142,7 +151,6 @@ export interface PermanentAnimal extends BaseDocument {
   bathing_date?: string;
   tick_treatment_date?: string;
   fasting_date?: string;
-  fasting_due_date?: string;
   adoption_date?: string;
   adopted_by?: string;
   contact?: string;
@@ -162,6 +170,7 @@ export interface MaintenanceRecord extends BaseDocument {
   repaired_on?: string;
   repaired_by?: string;
   next_service_due?: string;
+  warranty_expiry_date?: string;
   remarks?: string;
 }
 
@@ -171,6 +180,18 @@ export interface SpecialEventMedia extends BaseDocument {
   taken_by: string;
   google_drive_link?: string;
   remark?: string;
+}
+
+export interface HelplineCall extends BaseDocument {
+  date_time: string;
+  contact_number: string;
+  call_type: 'made' | 'received';
+  caller_name: string;
+  caller_address: string;
+  purpose: string;
+  other_purpose?: string;
+  query_closed: boolean;
+  notes?: string;
 }
 
 // Helper function to check if Firebase is configured
@@ -279,6 +300,7 @@ export const rolesService = new FirebaseService<Role>('roles');
 export const permanentAnimalsService = new FirebaseService<PermanentAnimal>('permanentAnimals');
 export const maintenanceRecordsService = new FirebaseService<MaintenanceRecord>('maintenanceRecords');
 export const specialEventMediaService = new FirebaseService<SpecialEventMedia>('specialEventMedia');
+export const helplineCallsService = new FirebaseService<HelplineCall>('helplineCalls');
 
 // Utility function to generate case numbers
 export const generateCaseNumber = async (): Promise<string> => {

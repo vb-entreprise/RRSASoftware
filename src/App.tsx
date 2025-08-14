@@ -21,6 +21,7 @@ import SimpleAuthPage from './pages/SimpleAuthPage';
 import PermanentAnimalsPage from './pages/PermanentAnimalsPage';
 import MaintenancePage from './pages/MaintenancePage';
 import SpecialEventsMediaPage from './pages/SpecialEventsMediaPage';
+import HelplineCallPage from './pages/HelplineCallPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -78,6 +79,7 @@ const AppContent: React.FC = () => {
                   <Route path="/inventory" element={<InventoryPage />} />
                   <Route path="/maintenance" element={<MaintenancePage />} />
                   <Route path="/permanentanimals" element={<PermanentAnimalsPage />} />
+                  <Route path="/helpline" element={<HelplineCallPage />} />
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route path="/changepassword" element={<ChangePasswordPage />} />
                 </Routes>

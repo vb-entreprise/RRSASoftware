@@ -8,6 +8,7 @@ const FeedingRecordPage: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<FeedingRecord | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<FeedingRecord | null>(null);
   const [records, setRecords] = useState<FeedingRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -47,6 +48,7 @@ const FeedingRecordPage: React.FC = () => {
 
   const handleFormSubmit = () => {
     setShowForm(false);
+    setEditingRecord(null);
     fetchRecords();
   };
 
@@ -316,6 +318,10 @@ const FeedingRecordPage: React.FC = () => {
                               <Eye className="h-4 w-4" />
                             </button>
                             <button 
+                              onClick={() => {
+                                setEditingRecord(record);
+                                setShowForm(true);
+                              }}
                               className="text-primary-600 hover:text-primary-900 mr-3"
                               title="Edit Record"
                             >
@@ -347,15 +353,27 @@ const FeedingRecordPage: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-white rounded-lg shadow-xl">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900">New Feeding Record</h2>
+              <h2 className="text-xl font-semibold text-gray-900">
+                {editingRecord ? 'Edit Feeding Record' : 'New Feeding Record'}
+              </h2>
               <button
-                onClick={() => setShowForm(false)}
+                onClick={() => {
+                  setShowForm(false);
+                  setEditingRecord(null);
+                }}
                 className="text-gray-400 hover:text-gray-500"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <FeedingRecordForm onSubmit={handleFormSubmit} onClose={() => setShowForm(false)} />
+            <FeedingRecordForm 
+              onSubmit={handleFormSubmit} 
+              onClose={() => {
+                setShowForm(false);
+                setEditingRecord(null);
+              }}
+              editingRecord={editingRecord}
+            />
           </div>
         </div>
       )}

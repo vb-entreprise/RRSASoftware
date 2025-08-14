@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Users, UserCog, FileText, Utensils, ClipboardList, SprayCan as Spray, Image, PackageSearch, PackagePlus, PackageMinus, Settings, Menu, X, Bell, LogOut, Search, ChevronDown, Heart, Wrench, Video } from 'lucide-react';
+import { Home, Users, UserCog, FileText, Utensils, ClipboardList, SprayCan as Spray, Image, PackageSearch, PackagePlus, PackageMinus, Settings, Menu, X, Bell, LogOut, Search, ChevronDown, Heart, Wrench, Video, Phone } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import Logo from '../Logo';
 import NotificationBell from '../notifications/NotificationBell';
@@ -32,6 +32,13 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       path: '/casepaper', 
       icon: FileText, 
       current: location.pathname === '/casepaper',
+      module: 'Case Management'
+    },
+    { 
+      name: 'Helpline Call Record', 
+      path: '/helpline', 
+      icon: Phone, 
+      current: location.pathname === '/helpline',
       module: 'Case Management'
     },
     {
@@ -112,27 +119,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       ]
     },
     {
-      name: 'Inventory',
+      name: 'Inward/Outward',
       icon: PackageSearch,
       path: '/inventory',
       current: location.pathname === '/inventory',
-      module: 'Inventory',
-      children: [
-        { 
-          name: 'Inward', 
-          path: '/inventory', 
-          icon: PackagePlus, 
-          current: location.pathname === '/inventory',
-          module: 'Inventory'
-        },
-        { 
-          name: 'Outward', 
-          path: '/inventory', 
-          icon: PackageMinus, 
-          current: location.pathname === '/inventory',
-          module: 'Inventory'
-        }
-      ]
+      module: 'Inventory'
     },
     { 
       name: 'Maintenance', 

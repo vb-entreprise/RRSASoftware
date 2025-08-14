@@ -21,6 +21,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({ onSubmit, onClose }) 
     repairedOn: '',
     repairedBy: '',
     nextServiceDue: '',
+    warrantyExpiryDate: '',
     remarks: ''
   });
 
@@ -53,6 +54,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({ onSubmit, onClose }) 
         repaired_on: formData.repairedOn,
         repaired_by: formData.repairedBy,
         next_service_due: formData.nextServiceDue,
+        warranty_expiry_date: formData.warrantyExpiryDate,
         remarks: formData.remarks
       });
       
@@ -292,20 +294,38 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({ onSubmit, onClose }) 
               <span>Service Schedule</span>
             </h3>
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Next Service Due Date
-              </label>
-              <input
-                type="date"
-                name="nextServiceDue"
-                value={formData.nextServiceDue}
-                onChange={handleInputChange}
-                className="block w-full md:w-1/2 rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm bg-white"
-              />
-              <p className="mt-2 text-xs text-purple-600">
-                📅 Set the next scheduled maintenance date
-              </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Next Service Due Date
+                </label>
+                <input
+                  type="date"
+                  name="nextServiceDue"
+                  value={formData.nextServiceDue}
+                  onChange={handleInputChange}
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm bg-white"
+                />
+                <p className="mt-2 text-xs text-purple-600">
+                  📅 Set the next scheduled maintenance date
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Warranty Expiry Date
+                </label>
+                <input
+                  type="date"
+                  name="warrantyExpiryDate"
+                  value={formData.warrantyExpiryDate}
+                  onChange={handleInputChange}
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm bg-white"
+                />
+                <p className="mt-2 text-xs text-purple-600">
+                  🛡️ Track warranty expiration for service claims
+                </p>
+              </div>
             </div>
           </div>
 

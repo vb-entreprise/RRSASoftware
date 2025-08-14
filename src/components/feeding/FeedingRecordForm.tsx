@@ -7,29 +7,31 @@ import {
   usersService, 
   weeklyMenusService,
   User as UserType,
-  WeeklyMenu 
+  WeeklyMenu,
+  FeedingRecord
 } from '../../services/firebaseService';
 import timeZoneService from '../../services/timeZoneService';
 
 interface FeedingRecordFormProps {
   onSubmit: () => void;
   onClose: () => void;
+  editingRecord?: FeedingRecord | null;
 }
 
-const FeedingRecordForm: React.FC<FeedingRecordFormProps> = ({ onSubmit, onClose }) => {
+const FeedingRecordForm: React.FC<FeedingRecordFormProps> = ({ onSubmit, onClose, editingRecord }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [users, setUsers] = useState<UserType[]>([]);
   const [currentMenu, setCurrentMenu] = useState<WeeklyMenu | null>(null);
   const [formData, setFormData] = useState({
-    date: '',
-    feedingTime: timeZoneService.getCurrentDateTimeForInput(),
-    fedBy: '',
-    morningFed: false,
-    eveningFed: false,
-    morningFedNote: '',
-    eveningFedNote: '',
-    notes: ''
+    date: editingRecord ? editingRecord.date : '',
+    feedingTime: editingRecord ? editingRecord.feeding_time : timeZoneService.getCurrentDateTimeForInput(),
+    fedBy: editingRecord ? editingRecord.fed_by.split(', ').filter(name => name.trim()) : [] as string[],
+    morningFed: editingRecord ? editingRecord.morning_fed : false,
+    eveningFed: editingRecord ? editingRecord.evening_fed : false,
+    morningFedNote: editingRecord ? editingRecord.morning_fed_note || '' : '',
+    eveningFedNote: editingRecord ? editingRecord.evening_fed_note || '' : '',
+    notes: editingRecord ? editingRecord.notes || '' : ''
   });
 
   useEffect(() => {
@@ -51,17 +53,10 @@ const FeedingRecordForm: React.FC<FeedingRecordFormProps> = ({ onSubmit, onClose
     try {
       const menus = await weeklyMenusService.getAll();
       
-      // Find the menu for the current week
-      const now = new Date();
-      const currentWeekMenu = menus.find(menu => {
-        const menuStartDate = new Date(menu.week_start_date);
-        const menuEndDate = new Date(menuStartDate);
-        menuEndDate.setDate(menuEndDate.getDate() + 6); // End of week
-        
-        return now >= menuStartDate && now <= menuEndDate;
-      });
+      // Get the most recent menu (first in the array since they're sorted by date desc)
+      const mostRecentMenu = menus.length > 0 ? menus[0] : null;
       
-      setCurrentMenu(currentWeekMenu || null);
+      setCurrentMenu(mostRecentMenu);
     } catch (err) {
       console.error('Error fetching menu:', err);
       // Don't set error for menu fetch failure as it's not critical
@@ -82,7 +77,7 @@ const FeedingRecordForm: React.FC<FeedingRecordFormProps> = ({ onSubmit, onClose
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.date || !formData.feedingTime || !formData.fedBy) {
+    if (!formData.date || !formData.feedingTime || formData.fedBy.length === 0) {
       setError('Please fill in all required fields');
       return;
     }
@@ -91,16 +86,31 @@ const FeedingRecordForm: React.FC<FeedingRecordFormProps> = ({ onSubmit, onClose
     setError(null);
 
     try {
-      await feedingRecordsService.create({
-        date: formData.date,
-        feeding_time: formData.feedingTime,
-        fed_by: formData.fedBy,
-        morning_fed: formData.morningFed,
-        evening_fed: formData.eveningFed,
-        morning_fed_note: formData.morningFedNote,
-        evening_fed_note: formData.eveningFedNote,
-        notes: formData.notes
-      });
+      if (editingRecord && editingRecord.id) {
+        // Update existing record
+        await feedingRecordsService.update(editingRecord.id, {
+          date: formData.date,
+          feeding_time: formData.feedingTime,
+          fed_by: formData.fedBy.join(', '), // Join multiple names with comma
+          morning_fed: formData.morningFed,
+          evening_fed: formData.eveningFed,
+          morning_fed_note: formData.morningFedNote,
+          evening_fed_note: formData.eveningFedNote,
+          notes: formData.notes
+        });
+      } else {
+        // Create new record
+        await feedingRecordsService.create({
+          date: formData.date,
+          feeding_time: formData.feedingTime,
+          fed_by: formData.fedBy.join(', '), // Join multiple names with comma
+          morning_fed: formData.morningFed,
+          evening_fed: formData.eveningFed,
+          morning_fed_note: formData.morningFedNote,
+          evening_fed_note: formData.eveningFedNote,
+          notes: formData.notes
+        });
+      }
       
       onSubmit();
     } catch (error) {
@@ -116,6 +126,15 @@ const FeedingRecordForm: React.FC<FeedingRecordFormProps> = ({ onSubmit, onClose
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+    }));
+  };
+
+  const handleCheckboxChange = (userName: string, checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      fedBy: checked 
+        ? [...prev.fedBy, userName]
+        : prev.fedBy.filter(name => name !== userName)
     }));
   };
 
@@ -171,26 +190,30 @@ const FeedingRecordForm: React.FC<FeedingRecordFormProps> = ({ onSubmit, onClose
             />
 
             <div className="sm:col-span-2">
-              <div className="flex items-center space-x-2 mb-4">
-                <UserIcon className="h-5 w-5 text-gray-400" />
+              <div className="flex items-start space-x-2 mb-4">
+                <UserIcon className="h-5 w-5 text-gray-400 mt-1" />
                 <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Fed By *
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Fed By * (Select all who participated)
                   </label>
-                  <select
-                    value={formData.fedBy}
-                    onChange={handleInputChange}
-                    name="fedBy"
-                    required
-                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                  >
-                    <option value="">Select person who fed</option>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-48 overflow-y-auto border border-gray-200 rounded-md p-3 bg-gray-50">
                     {users.map((user) => (
-                      <option key={user.id} value={user.name}>
-                        {user.name}
-                      </option>
+                      <label key={user.id} className="flex items-center space-x-2 p-2 hover:bg-white rounded cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.fedBy.includes(user.name)}
+                          onChange={(e) => handleCheckboxChange(user.name, e.target.checked)}
+                          className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                        />
+                        <span className="text-sm text-gray-700">{user.name}</span>
+                      </label>
                     ))}
-                  </select>
+                  </div>
+                  {formData.fedBy.length > 0 && (
+                    <p className="mt-2 text-xs text-gray-500">
+                      Selected: {formData.fedBy.join(', ')}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -212,7 +235,7 @@ const FeedingRecordForm: React.FC<FeedingRecordFormProps> = ({ onSubmit, onClose
                   <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md">
                     {getCurrentDayMenu('lunch') ? (
                       <div>
-                        <span className="font-medium">Today's Lunch:</span>
+                        <span className="font-medium">{formData.date}'s Lunch:</span>
                         <p className="mt-1">{getCurrentDayMenu('lunch')}</p>
                       </div>
                     ) : (
@@ -255,7 +278,7 @@ const FeedingRecordForm: React.FC<FeedingRecordFormProps> = ({ onSubmit, onClose
                   <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md">
                     {getCurrentDayMenu('dinner') ? (
                       <div>
-                        <span className="font-medium">Today's Dinner:</span>
+                        <span className="font-medium">{formData.date}'s Dinner:</span>
                         <p className="mt-1">{getCurrentDayMenu('dinner')}</p>
                       </div>
                     ) : (
@@ -325,9 +348,12 @@ const FeedingRecordForm: React.FC<FeedingRecordFormProps> = ({ onSubmit, onClose
             type="submit"
             variant="primary"
             isLoading={isLoading}
-            disabled={!formData.date || !formData.feedingTime || !formData.fedBy}
+            disabled={!formData.date || !formData.feedingTime || formData.fedBy.length === 0}
           >
-            {isLoading ? 'Saving Record...' : 'Save Record'}
+            {isLoading 
+              ? (editingRecord ? 'Updating Record...' : 'Saving Record...') 
+              : (editingRecord ? 'Update Record' : 'Save Record')
+            }
           </Button>
         </div>
       </form>

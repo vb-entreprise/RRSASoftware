@@ -27,7 +27,6 @@ const PermanentAnimalForm: React.FC<PermanentAnimalFormProps> = ({ onSubmit, onC
     bathingDate: '',
     tickTreatmentDate: '',
     fastingDate: '',
-    fastingDueDate: '',
     
     // Adoption Details
     adoptionDate: '',
@@ -77,7 +76,6 @@ const PermanentAnimalForm: React.FC<PermanentAnimalFormProps> = ({ onSubmit, onC
         bathing_date: formData.bathingDate,
         tick_treatment_date: formData.tickTreatmentDate,
         fasting_date: formData.fastingDate,
-        fasting_due_date: formData.fastingDueDate,
         adoption_date: formData.adoptionDate,
         adopted_by: formData.adoptedBy,
         contact: formData.contact,
@@ -340,18 +338,7 @@ const PermanentAnimalForm: React.FC<PermanentAnimalFormProps> = ({ onSubmit, onC
                   className="block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm bg-white"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Fasting Due Date
-                </label>
-                <input
-                  type="date"
-                  name="fastingDueDate"
-                  value={formData.fastingDueDate}
-                  onChange={handleInputChange}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm bg-white"
-                />
-              </div>
+
             </div>
           </div>
 

@@ -9,6 +9,7 @@ const MenuPage: React.FC = () => {
   const [showViewModal, setShowViewModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedMenu, setSelectedMenu] = useState<WeeklyMenu | null>(null);
+  const [editingMenu, setEditingMenu] = useState<WeeklyMenu | null>(null);
   const [menus, setMenus] = useState<WeeklyMenu[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +48,7 @@ const MenuPage: React.FC = () => {
 
   const handleFormSubmit = () => {
     setShowForm(false);
+    setEditingMenu(null);
     fetchMenus();
   };
 
@@ -181,13 +183,10 @@ const MenuPage: React.FC = () => {
                   <thead className="bg-gray-50">
                     <tr>
                       <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
-                        Week Starting
+                        Week
                       </th>
                       <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                         Created At
-                      </th>
-                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                        Status
                       </th>
                       <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                         <span className="sr-only">Actions</span>
@@ -195,35 +194,16 @@ const MenuPage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 bg-white">
-                    {menus.map((menu) => {
-                      const startDate = new Date(menu.week_start_date);
-                      const endDate = new Date(startDate);
-                      endDate.setDate(endDate.getDate() + 6);
-                      const isCurrentWeek = startDate <= new Date() && endDate >= new Date();
-
+                    {menus.map((menu, index) => {
                       return (
                         <tr key={menu.id}>
                           <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm sm:pl-6">
                             <div className="font-medium text-gray-900">
-                              {startDate.toLocaleDateString()}
-                            </div>
-                            <div className="text-gray-500">
-                              to {endDate.toLocaleDateString()}
+                              Week {menus.length - index}
                             </div>
                           </td>
                           <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                             {menu.createdAt ? new Date(menu.createdAt).toLocaleDateString() : 'N/A'}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm">
-                            <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
-                              isCurrentWeek
-                                ? 'bg-green-100 text-green-800'
-                                : startDate > new Date()
-                                ? 'bg-blue-100 text-blue-800'
-                                : 'bg-gray-100 text-gray-800'
-                            }`}>
-                              {isCurrentWeek ? 'Current Week' : startDate > new Date() ? 'Upcoming' : 'Past'}
-                            </span>
                           </td>
                           <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                             <button 
@@ -237,6 +217,10 @@ const MenuPage: React.FC = () => {
                               <Eye className="h-4 w-4" />
                             </button>
                             <button 
+                              onClick={() => {
+                                setEditingMenu(menu);
+                                setShowForm(true);
+                              }}
                               className="text-primary-600 hover:text-primary-900 mr-3"
                               title="Edit Menu"
                             >
@@ -268,15 +252,28 @@ const MenuPage: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="w-full max-w-7xl max-h-[90vh] overflow-y-auto bg-white rounded-lg shadow-xl">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900">New Weekly Menu</h2>
+              <h2 className="text-xl font-semibold text-gray-900">
+                {editingMenu ? 'Edit Weekly Menu' : 'New Weekly Menu'}
+              </h2>
               <button
-                onClick={() => setShowForm(false)}
+                onClick={() => {
+                  setShowForm(false);
+                  setEditingMenu(null);
+                }}
                 className="text-gray-400 hover:text-gray-500"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <MenuForm onSubmit={handleFormSubmit} onClose={() => setShowForm(false)} />
+            <MenuForm 
+              onSubmit={handleFormSubmit} 
+              onClose={() => {
+                setShowForm(false);
+                setEditingMenu(null);
+              }}
+              menu={editingMenu}
+              isEditMode={!!editingMenu}
+            />
           </div>
         </div>
       )}

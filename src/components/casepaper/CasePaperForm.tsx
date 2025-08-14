@@ -43,6 +43,8 @@ const CasePaperForm: React.FC<CasePaperFormProps> = ({ onSubmit, onClose, casePa
     rescueBy: casePaper?.rescue_by || '',
     sex: casePaper?.sex || '',
     admitted: casePaper?.admitted ? 'yes' : 'no',
+    admissionDate: casePaper?.admission_date || '',
+    releaseDeathDate: casePaper?.release_death_date || '',
     history: casePaper?.history || '',
     symptoms: casePaper?.symptoms || '',
     treatment: casePaper?.treatment || ''
@@ -162,6 +164,8 @@ const CasePaperForm: React.FC<CasePaperFormProps> = ({ onSubmit, onClose, casePa
         rescue_by: formData.rescueBy,
         sex: formData.sex,
         admitted: formData.admitted === 'yes',
+        admission_date: formData.admissionDate || undefined,
+        release_death_date: formData.releaseDeathDate || undefined,
         history: formData.history,
         symptoms: formData.symptoms,
         treatment: formData.treatment,
@@ -236,6 +240,13 @@ const CasePaperForm: React.FC<CasePaperFormProps> = ({ onSubmit, onClose, casePa
         medication: false,
         injectable: false,
         surgery: false,
+        other: false,
+        dressing_by: '',
+        medication_by: '',
+        injectable_by: '',
+        surgery_by: '',
+        other_by: '',
+        other_treatment: '',
         remark: '',
       },
     ]);
@@ -258,6 +269,8 @@ const CasePaperForm: React.FC<CasePaperFormProps> = ({ onSubmit, onClose, casePa
       rescueBy: registeredUsers.length > 0 ? registeredUsers[0].name : '',
       sex: 'male',
       admitted: 'yes',
+      admissionDate: timeZoneService.getCurrentDateTimeForInput(),
+      releaseDeathDate: '',
       history: 'Animal found injured on road side with visible wounds',
       symptoms: 'Limping, visible cuts on front leg, appears dehydrated',
       treatment: 'Cleaned wounds, applied antiseptic, administered pain medication'
@@ -502,6 +515,27 @@ const CasePaperForm: React.FC<CasePaperFormProps> = ({ onSubmit, onClose, casePa
                   disabled={isLoading}
                 />
 
+                <Input
+                  label="Admission Date"
+                  type="datetime-local"
+                  name="admissionDate"
+                  value={formData.admissionDate}
+                  onChange={handleInputChange}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <Input
+                  label="Release/Death Date"
+                  type="datetime-local"
+                  name="releaseDeathDate"
+                  value={formData.releaseDeathDate}
+                  onChange={handleInputChange}
+                  disabled={isLoading}
+                />
+
+                <div></div> {/* Empty div for grid alignment */}
                 <div></div> {/* Empty div for grid alignment */}
               </div>
 
@@ -705,50 +739,161 @@ const CasePaperForm: React.FC<CasePaperFormProps> = ({ onSubmit, onClose, casePa
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Treatment Type
                         </label>
-                        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                          <label className="flex items-center p-2 rounded border hover:bg-gray-50 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={day.dressing}
-                              onChange={(e) => handleTreatmentDayChange(index, 'dressing', e.target.checked)}
-                              disabled={isLoading}
-                              className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                            />
-                            <span className="ml-2 text-sm text-gray-700">🩹 Dressing</span>
-                          </label>
+                        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+                          {/* Dressing */}
+                          <div className="flex items-center space-x-2 p-2 rounded border">
+                            <label className="flex items-center cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={day.dressing}
+                                onChange={(e) => handleTreatmentDayChange(index, 'dressing', e.target.checked)}
+                                disabled={isLoading}
+                                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                              />
+                              <span className="ml-2 text-sm text-gray-700">🩹 Dressing</span>
+                            </label>
+                            {day.dressing && (
+                              <select
+                                value={day.dressing_by || ''}
+                                onChange={(e) => handleTreatmentDayChange(index, 'dressing_by', e.target.value)}
+                                disabled={isLoading}
+                                className="ml-2 text-xs border border-gray-300 rounded px-1 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                              >
+                                <option value="">Select person</option>
+                                {registeredUsers.map(user => (
+                                  <option key={user.id} value={user.name}>
+                                    {user.name}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
 
-                          <label className="flex items-center p-2 rounded border hover:bg-gray-50 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={day.medication}
-                              onChange={(e) => handleTreatmentDayChange(index, 'medication', e.target.checked)}
-                              disabled={isLoading}
-                              className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                            />
-                            <span className="ml-2 text-sm text-gray-700">💊 Medication</span>
-                          </label>
+                          {/* Medication */}
+                          <div className="flex items-center space-x-2 p-2 rounded border">
+                            <label className="flex items-center cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={day.medication}
+                                onChange={(e) => handleTreatmentDayChange(index, 'medication', e.target.checked)}
+                                disabled={isLoading}
+                                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                              />
+                              <span className="ml-2 text-sm text-gray-700">💊 Medication</span>
+                            </label>
+                            {day.medication && (
+                              <select
+                                value={day.medication_by || ''}
+                                onChange={(e) => handleTreatmentDayChange(index, 'medication_by', e.target.value)}
+                                disabled={isLoading}
+                                className="ml-2 text-xs border border-gray-300 rounded px-1 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                              >
+                                <option value="">Select person</option>
+                                {registeredUsers.map(user => (
+                                  <option key={user.id} value={user.name}>
+                                    {user.name}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
 
-                          <label className="flex items-center p-2 rounded border hover:bg-gray-50 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={day.injectable}
-                              onChange={(e) => handleTreatmentDayChange(index, 'injectable', e.target.checked)}
-                              disabled={isLoading}
-                              className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                            />
-                            <span className="ml-2 text-sm text-gray-700">💉 Injectable</span>
-                          </label>
+                          {/* Injectable */}
+                          <div className="flex items-center space-x-2 p-2 rounded border">
+                            <label className="flex items-center cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={day.injectable}
+                                onChange={(e) => handleTreatmentDayChange(index, 'injectable', e.target.checked)}
+                                disabled={isLoading}
+                                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                              />
+                              <span className="ml-2 text-sm text-gray-700">💉 Injectable</span>
+                            </label>
+                            {day.injectable && (
+                              <select
+                                value={day.injectable_by || ''}
+                                onChange={(e) => handleTreatmentDayChange(index, 'injectable_by', e.target.value)}
+                                disabled={isLoading}
+                                className="ml-2 text-xs border border-gray-300 rounded px-1 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                              >
+                                <option value="">Select person</option>
+                                {registeredUsers.map(user => (
+                                  <option key={user.id} value={user.name}>
+                                    {user.name}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
 
-                          <label className="flex items-center p-2 rounded border hover:bg-gray-50 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={day.surgery}
-                              onChange={(e) => handleTreatmentDayChange(index, 'surgery', e.target.checked)}
-                              disabled={isLoading}
-                              className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                            />
-                            <span className="ml-2 text-sm text-gray-700">🏥 Surgery</span>
-                          </label>
+                          {/* Surgery */}
+                          <div className="flex items-center space-x-2 p-2 rounded border">
+                            <label className="flex items-center cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={day.surgery}
+                                onChange={(e) => handleTreatmentDayChange(index, 'surgery', e.target.checked)}
+                                disabled={isLoading}
+                                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                              />
+                              <span className="ml-2 text-sm text-gray-700">🏥 Surgery</span>
+                            </label>
+                            {day.surgery && (
+                              <select
+                                value={day.surgery_by || ''}
+                                onChange={(e) => handleTreatmentDayChange(index, 'surgery_by', e.target.value)}
+                                disabled={isLoading}
+                                className="ml-2 text-xs border border-gray-300 rounded px-1 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                              >
+                                <option value="">Select person</option>
+                                {registeredUsers.map(user => (
+                                  <option key={user.id} value={user.name}>
+                                    {user.name}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+
+                          {/* Other Treatment */}
+                          <div className="flex items-center space-x-2 p-2 rounded border lg:col-span-2">
+                            <label className="flex items-center cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={day.other}
+                                onChange={(e) => handleTreatmentDayChange(index, 'other', e.target.checked)}
+                                disabled={isLoading}
+                                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                              />
+                              <span className="ml-2 text-sm text-gray-700">🔧 Other</span>
+                            </label>
+                            {day.other && (
+                              <div className="flex items-center space-x-2">
+                                <input
+                                  type="text"
+                                  value={day.other_treatment || ''}
+                                  onChange={(e) => handleTreatmentDayChange(index, 'other_treatment', e.target.value)}
+                                  disabled={isLoading}
+                                  placeholder="Describe treatment"
+                                  className="text-xs border border-gray-300 rounded px-1 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                />
+                                <select
+                                  value={day.other_by || ''}
+                                  onChange={(e) => handleTreatmentDayChange(index, 'other_by', e.target.value)}
+                                  disabled={isLoading}
+                                  className="text-xs border border-gray-300 rounded px-1 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                >
+                                  <option value="">Select person</option>
+                                  {registeredUsers.map(user => (
+                                    <option key={user.id} value={user.name}>
+                                      {user.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
 

@@ -11,6 +11,7 @@ const UsersPage: React.FC = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
   const [showUserDetails, setShowUserDetails] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserType | null>(null);
   const [users, setUsers] = useState<UserType[]>([]);
   const [availableRoles, setAvailableRoles] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -85,6 +86,32 @@ const UsersPage: React.FC = () => {
       setShowUserForm(false);
     } catch (err) {
       console.error('Error creating user:', err);
+      throw err;
+    }
+  };
+
+  const handleEditUser = async (userData: UserFormData) => {
+    if (!editingUser?.id) return;
+    
+    try {
+      // Update user data (excluding password if not provided)
+      const updateData: any = {
+        name: userData.name,
+        phone: userData.phone,
+        role: userData.role
+      };
+      
+      // Only update password if a new one is provided
+      if (userData.password) {
+        updateData.password = userData.password;
+      }
+      
+      await usersService.update(editingUser.id, updateData);
+      await fetchUsers();
+      setShowUserForm(false);
+      setEditingUser(null);
+    } catch (err) {
+      console.error('Error updating user:', err);
       throw err;
     }
   };
@@ -207,7 +234,13 @@ const UsersPage: React.FC = () => {
                           )}
                         </td>
                         <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                          <button className="text-primary-600 hover:text-primary-900 mr-3">
+                          <button 
+                            className="text-primary-600 hover:text-primary-900 mr-3"
+                            onClick={() => {
+                              setEditingUser(user);
+                              setShowUserForm(true);
+                            }}
+                          >
                             <Pencil className="h-4 w-4" />
                           </button>
                           <button 
@@ -228,8 +261,19 @@ const UsersPage: React.FC = () => {
 
         {showUserForm && (
           <UserForm
-            onClose={() => setShowUserForm(false)}
-            onSubmit={handleAddUser}
+            onClose={() => {
+              setShowUserForm(false);
+              setEditingUser(null);
+            }}
+            onSubmit={editingUser ? handleEditUser : handleAddUser}
+            user={editingUser ? {
+              name: editingUser.name,
+              email: editingUser.email,
+              password: '', // Don't show current password
+              phone: editingUser.phone || '',
+              role: editingUser.role
+            } : undefined}
+            isEditMode={!!editingUser}
           />
         )}
       </div>

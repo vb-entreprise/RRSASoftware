@@ -8,14 +8,15 @@ import timeZoneService from '../../services/timeZoneService';
 interface MenuFormProps {
   onSubmit: () => void;
   onClose: () => void;
+  menu?: any; // Optional menu data for edit mode
+  isEditMode?: boolean; // Flag to indicate if we're editing
 }
 
-const MenuForm: React.FC<MenuFormProps> = ({ onSubmit, onClose }) => {
+const MenuForm: React.FC<MenuFormProps> = ({ onSubmit, onClose, menu, isEditMode = false }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    weekStartDate: timeZoneService.getCurrentDateForInput(),
-    meals: {
+    meals: menu?.meals || {
       monday: { lunch: '', dinner: '' },
       tuesday: { lunch: '', dinner: '' },
       wednesday: { lunch: '', dinner: '' },
@@ -29,24 +30,25 @@ const MenuForm: React.FC<MenuFormProps> = ({ onSubmit, onClose }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.weekStartDate) {
-      setError('Please select a week starting date');
-      return;
-    }
-
     setIsLoading(true);
     setError(null);
 
     try {
-      await weeklyMenusService.create({
-        week_start_date: formData.weekStartDate,
-        meals: formData.meals
-      });
+      if (isEditMode && menu?.id) {
+        await weeklyMenusService.update(menu.id, {
+          meals: formData.meals
+        });
+      } else {
+        await weeklyMenusService.create({
+          week_start_date: timeZoneService.getCurrentDateForInput(), // Use current date as default
+          meals: formData.meals
+        });
+      }
       
       onSubmit();
     } catch (error) {
-      console.error('Error creating menu:', error);
-      setError('Failed to create menu. Please try again.');
+      console.error(`Error ${isEditMode ? 'updating' : 'creating'} menu:`, error);
+      setError(`Failed to ${isEditMode ? 'update' : 'create'} menu. Please try again.`);
     } finally {
       setIsLoading(false);
     }
@@ -118,28 +120,6 @@ const MenuForm: React.FC<MenuFormProps> = ({ onSubmit, onClose }) => {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
-        <div className="bg-blue-50 p-4 sm:p-6 rounded-lg border border-blue-200">
-          <h3 className="text-base sm:text-lg font-semibold text-blue-900 mb-3 sm:mb-4 flex items-center space-x-2">
-            <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
-            <span>Week Information</span>
-          </h3>
-          
-          <div className="max-w-md">
-            <Input
-              label="Week Starting Date"
-              type="date"
-              value={formData.weekStartDate}
-              onChange={(e) => setFormData(prev => ({ ...prev, weekStartDate: e.target.value }))}
-              required
-              error={!formData.weekStartDate ? 'Please select a starting date' : ''}
-            />
-            {formData.weekStartDate && (
-              <p className="mt-2 text-xs sm:text-sm text-gray-600">
-                Week ending: {new Date(new Date(formData.weekStartDate).getTime() + 6 * 24 * 60 * 60 * 1000).toLocaleDateString()}
-              </p>
-            )}
-          </div>
-        </div>
 
         <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
           {renderDayInputs('monday', 'Monday')}
@@ -161,15 +141,14 @@ const MenuForm: React.FC<MenuFormProps> = ({ onSubmit, onClose }) => {
           >
             Cancel
           </Button>
-          <Button
-            type="submit"
-            variant="primary"
-            isLoading={isLoading}
-            disabled={!formData.weekStartDate}
-            className="w-full sm:w-auto justify-center"
-          >
-            {isLoading ? 'Saving Menu...' : 'Save Menu'}
-          </Button>
+                      <Button
+              type="submit"
+              variant="primary"
+              isLoading={isLoading}
+              className="w-full sm:w-auto justify-center"
+            >
+              {isLoading ? (isEditMode ? 'Updating Menu...' : 'Saving Menu...') : (isEditMode ? 'Update Menu' : 'Save Menu')}
+            </Button>
         </div>
       </form>
     </div>

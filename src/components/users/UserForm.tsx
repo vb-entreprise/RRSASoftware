@@ -7,6 +7,8 @@ import { Role, rolesService } from '../../services/firebaseService';
 interface UserFormProps {
   onClose: () => void;
   onSubmit: (userData: UserFormData) => void;
+  user?: UserFormData; // Optional user data for edit mode
+  isEditMode?: boolean; // Flag to indicate if we're editing
 }
 
 export interface UserFormData {
@@ -17,13 +19,13 @@ export interface UserFormData {
   role: string;
 }
 
-const UserForm: React.FC<UserFormProps> = ({ onClose, onSubmit }) => {
+const UserForm: React.FC<UserFormProps> = ({ onClose, onSubmit, user, isEditMode = false }) => {
   const [formData, setFormData] = useState<UserFormData>({
-    name: '',
-    email: '',
-    password: '',
-    phone: '',
-    role: '',
+    name: user?.name || '',
+    email: user?.email || '',
+    password: user?.password || '',
+    phone: user?.phone || '',
+    role: user?.role || '',
   });
   
   const [roles, setRoles] = useState<Role[]>([]);
@@ -136,9 +138,9 @@ const UserForm: React.FC<UserFormProps> = ({ onClose, onSubmit }) => {
     }
 
     // Password validation
-    if (!formData.password) {
+    if (!isEditMode && !formData.password) {
       errors.password = 'Password is required';
-    } else if (formData.password.length < 8) {
+    } else if (formData.password && formData.password.length < 8) {
       errors.password = 'Password must be at least 8 characters';
     }
 
@@ -172,15 +174,17 @@ const UserForm: React.FC<UserFormProps> = ({ onClose, onSubmit }) => {
     try {
       await onSubmit(formData);
       setError(null);
-      setSuccess('User created successfully!');
-      // Reset form
-      setFormData({
-        name: '',
-        email: '',
-        password: '',
-        phone: '',
-        role: 'staff'
-      });
+      setSuccess(isEditMode ? 'User updated successfully!' : 'User created successfully!');
+      // Reset form only if not in edit mode
+      if (!isEditMode) {
+        setFormData({
+          name: '',
+          email: '',
+          password: '',
+          phone: '',
+          role: 'staff'
+        });
+      }
     } catch (err: any) {
       console.error('Form submission error:', err);
       
@@ -247,8 +251,12 @@ const UserForm: React.FC<UserFormProps> = ({ onClose, onSubmit }) => {
               <User className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">Create New User</h2>
-              <p className="text-sm text-gray-600">Add a new user to the system</p>
+              <h2 className="text-xl font-semibold text-gray-900">
+                {isEditMode ? 'Edit User' : 'Create New User'}
+              </h2>
+              <p className="text-sm text-gray-600">
+                {isEditMode ? 'Update user information' : 'Add a new user to the system'}
+              </p>
             </div>
           </div>
           <button
@@ -342,14 +350,19 @@ const UserForm: React.FC<UserFormProps> = ({ onClose, onSubmit }) => {
                     onChange={handleChange}
                     required
                     placeholder="user@example.com"
-                    disabled={isLoading}
+                    disabled={isLoading || isEditMode} // Disable email editing in edit mode
                     error={validationErrors.email}
                   />
+                  {isEditMode && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      Email address cannot be changed for security reasons
+                    </p>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Password *
+                    Password {!isEditMode && '*'}
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -360,8 +373,8 @@ const UserForm: React.FC<UserFormProps> = ({ onClose, onSubmit }) => {
                       name="password"
                       value={formData.password}
                       onChange={handleChange}
-                      required
-                      placeholder="Enter secure password"
+                      required={!isEditMode}
+                      placeholder={isEditMode ? "Leave blank to keep current password" : "Enter secure password"}
                       disabled={isLoading}
                       className={`block w-full pl-10 pr-12 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-1 sm:text-sm ${
                         validationErrors.password
@@ -556,9 +569,9 @@ const UserForm: React.FC<UserFormProps> = ({ onClose, onSubmit }) => {
               variant="primary"
               onClick={handleSubmit}
               isLoading={isLoading}
-              disabled={!formData.name || !formData.email || !formData.password || !formData.phone || !formData.role}
+              disabled={!formData.name || !formData.email || (!isEditMode && !formData.password) || !formData.phone || !formData.role}
             >
-              {isLoading ? 'Creating User...' : 'Create User'}
+              {isLoading ? (isEditMode ? 'Updating User...' : 'Creating User...') : (isEditMode ? 'Update User' : 'Create User')}
             </Button>
           </div>
         </div>
