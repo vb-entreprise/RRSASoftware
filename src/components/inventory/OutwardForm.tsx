@@ -7,20 +7,23 @@ import timeZoneService from '../../services/timeZoneService';
 interface OutwardFormProps {
   onSubmit: () => void;
   onClose: () => void;
+  inventoryRecord?: any;
+  isEditMode?: boolean;
 }
 
-const OutwardForm: React.FC<OutwardFormProps> = ({ onSubmit, onClose }) => {
+const OutwardForm: React.FC<OutwardFormProps> = ({ onSubmit, onClose, inventoryRecord, isEditMode = false }) => {
   const [formData, setFormData] = useState({
-    dateTime: timeZoneService.getCurrentDateTimeForInput(),
-    inwardBack: timeZoneService.getCurrentDateTimeForInput(),
-    itemName: '',
-    quantity: '',
-    givenBy: '',
-    givenTo: '',
-    givenFor: '',
-    inwardBy: '',
-    inwardTo: '',
-    placedAt: ''
+    dateTime: inventoryRecord?.date_time || timeZoneService.getCurrentDateTimeForInput(),
+    inwardBack: inventoryRecord?.expected_return_date || timeZoneService.getCurrentDateTimeForInput(),
+    actualReturnDate: inventoryRecord?.actual_return_date || '',
+    itemName: inventoryRecord?.item_name || '',
+    quantity: inventoryRecord?.quantity?.toString() || '',
+    givenBy: inventoryRecord?.given_by || '',
+    givenTo: inventoryRecord?.given_to || '',
+    givenFor: inventoryRecord?.given_for || '',
+    inwardBy: inventoryRecord?.inward_by || '',
+    inwardTo: inventoryRecord?.inward_to || '',
+    placedAt: inventoryRecord?.placed_at || ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,19 +49,41 @@ const OutwardForm: React.FC<OutwardFormProps> = ({ onSubmit, onClose }) => {
     setError(null);
 
     try {
-      await inventoryRecordsService.create({
-        date_time: formData.dateTime,
-        inward_back: formData.inwardBack,
-        item_name: formData.itemName,
-        quantity: parseInt(formData.quantity),
-        given_by: formData.givenBy,
-        given_to: formData.givenTo,
-        given_for: formData.givenFor,
-        inward_by: formData.inwardBy,
-        inward_to: formData.inwardTo,
-        placed_at: formData.placedAt,
-        type: 'outward'
-      });
+      if (isEditMode && inventoryRecord?.id) {
+        // Update existing record
+        await inventoryRecordsService.update(inventoryRecord.id, {
+          date_time: formData.dateTime,
+          inward_back: formData.inwardBack,
+          expected_return_date: formData.inwardBack,
+          actual_return_date: formData.actualReturnDate || undefined,
+          item_name: formData.itemName,
+          quantity: parseInt(formData.quantity),
+          given_by: formData.givenBy,
+          given_to: formData.givenTo,
+          given_for: formData.givenFor,
+          inward_by: formData.inwardBy,
+          inward_to: formData.inwardTo,
+          placed_at: formData.placedAt,
+          type: 'outward'
+        });
+      } else {
+        // Create new record
+        await inventoryRecordsService.create({
+          date_time: formData.dateTime,
+          inward_back: formData.inwardBack,
+          expected_return_date: formData.inwardBack,
+          actual_return_date: formData.actualReturnDate || undefined,
+          item_name: formData.itemName,
+          quantity: parseInt(formData.quantity),
+          given_by: formData.givenBy,
+          given_to: formData.givenTo,
+          given_for: formData.givenFor,
+          inward_by: formData.inwardBy,
+          inward_to: formData.inwardTo,
+          placed_at: formData.placedAt,
+          type: 'outward'
+        });
+      }
       
       onSubmit();
     } catch (error) {
@@ -149,6 +174,23 @@ const OutwardForm: React.FC<OutwardFormProps> = ({ onSubmit, onClose }) => {
                   required
                   className="block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm bg-white"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center space-x-1">
+                  <svg className="h-4 w-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Actual Return Date</span>
+                </label>
+                <input
+                  type="datetime-local"
+                  name="actualReturnDate"
+                  value={formData.actualReturnDate}
+                  onChange={handleInputChange}
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm bg-white"
+                />
+                <p className="mt-1 text-xs text-gray-500">Leave empty if item hasn't been returned yet</p>
               </div>
 
               <div>

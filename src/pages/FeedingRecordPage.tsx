@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Eye, Pencil, X, Trash2, AlertCircle, Utensils, Clock } from 'lucide-react';
 import Button from '../components/ui/Button';
 import FeedingRecordForm from '../components/feeding/FeedingRecordForm';
-import { feedingRecordsService, FeedingRecord } from '../services/firebaseService';
+import { feedingRecordsService, permanentAnimalsService, FeedingRecord, PermanentAnimal } from '../services/firebaseService';
 
 const FeedingRecordPage: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
@@ -11,11 +11,13 @@ const FeedingRecordPage: React.FC = () => {
   const [editingRecord, setEditingRecord] = useState<FeedingRecord | null>(null);
   const [selectedRecord, setSelectedRecord] = useState<FeedingRecord | null>(null);
   const [records, setRecords] = useState<FeedingRecord[]>([]);
+  const [permanentAnimals, setPermanentAnimals] = useState<PermanentAnimal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchRecords();
+    fetchPermanentAnimals();
   }, []);
 
   const fetchRecords = async () => {
@@ -31,6 +33,16 @@ const FeedingRecordPage: React.FC = () => {
       setError('Failed to fetch feeding records');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchPermanentAnimals = async () => {
+    try {
+      const fetchedAnimals = await permanentAnimalsService.getAll();
+      setPermanentAnimals(fetchedAnimals);
+    } catch (err) {
+      console.error('Error fetching permanent animals:', err);
+      // Don't set error for animals fetch failure as it's not critical
     }
   };
 
@@ -50,6 +62,12 @@ const FeedingRecordPage: React.FC = () => {
     setShowForm(false);
     setEditingRecord(null);
     fetchRecords();
+  };
+
+  const getAnimalNames = (animalIds: string[] | undefined) => {
+    if (!animalIds || animalIds.length === 0) return 'N/A';
+    const animals = permanentAnimals.filter(a => animalIds.includes(a.id!));
+    return animals.map(animal => `${animal.name} (${animal.animal_type})`).join(', ');
   };
 
   const renderViewModal = () => {
@@ -94,8 +112,15 @@ const FeedingRecordPage: React.FC = () => {
                     <dd className="mt-1 text-sm text-gray-900">{selectedRecord.fed_by}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Animal ID</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{selectedRecord.animal_id || 'Not specified'}</dd>
+                    <dt className="text-sm font-medium text-gray-500">Animals</dt>
+                    <dd className="mt-1 text-sm text-gray-900">
+                      {getAnimalNames(selectedRecord.animal_ids)}
+                      {selectedRecord.animal_ids && selectedRecord.animal_ids.length > 0 && (
+                        <div className="text-xs text-gray-400 mt-1">
+                          IDs: {selectedRecord.animal_ids.join(', ')}
+                        </div>
+                      )}
+                    </dd>
                   </div>
                 </dl>
               </div>
@@ -153,6 +178,24 @@ const FeedingRecordPage: React.FC = () => {
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Quantity</dt>
                     <dd className="mt-1 text-sm text-gray-900">{selectedRecord.quantity || 'Not specified'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Food Intake Scale</dt>
+                    <dd className="mt-1 text-sm text-gray-900">
+                      {selectedRecord.food_intake_scale ? (
+                        <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
+                          selectedRecord.food_intake_scale === 'Less' 
+                            ? 'bg-red-100 text-red-800'
+                            : selectedRecord.food_intake_scale === 'Moderate'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-green-100 text-green-800'
+                        }`}>
+                          {selectedRecord.food_intake_scale}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 text-xs">Not recorded</span>
+                      )}
+                    </dd>
                   </div>
                 </dl>
               </div>
@@ -257,10 +300,13 @@ const FeedingRecordPage: React.FC = () => {
                         Fed By
                       </th>
                       <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                        Animal ID
+                        Animal
                       </th>
                       <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                         Status
+                      </th>
+                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                        Food Intake
                       </th>
                       <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                         <span className="sr-only">Actions</span>
@@ -286,7 +332,14 @@ const FeedingRecordPage: React.FC = () => {
                             {record.fed_by}
                           </td>
                           <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                            {record.animal_id || 'N/A'}
+                            <div className="font-medium text-gray-900">
+                              {getAnimalNames(record.animal_ids)}
+                            </div>
+                            {record.animal_ids && record.animal_ids.length > 0 && (
+                              <div className="text-xs text-gray-400">
+                                IDs: {record.animal_ids.join(', ')}
+                              </div>
+                            )}
                           </td>
                           <td className="whitespace-nowrap px-3 py-4 text-sm">
                             <div className="flex flex-col space-y-1">
@@ -305,6 +358,21 @@ const FeedingRecordPage: React.FC = () => {
                                 }
                               </span>
                             </div>
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-4 text-sm">
+                            {record.food_intake_scale ? (
+                              <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
+                                record.food_intake_scale === 'Less' 
+                                  ? 'bg-red-100 text-red-800'
+                                  : record.food_intake_scale === 'Moderate'
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-green-100 text-green-800'
+                              }`}>
+                                {record.food_intake_scale}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400 text-xs">Not recorded</span>
+                            )}
                           </td>
                           <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                             <button 

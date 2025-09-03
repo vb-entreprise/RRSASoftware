@@ -98,6 +98,8 @@ export interface InventoryRecord extends BaseDocument {
   quantity: number;
   placed_at: string;
   type: 'inward' | 'outward';
+  expected_return_date?: string;
+  actual_return_date?: string;
   notes?: string;
 }
 
@@ -111,7 +113,8 @@ export interface FeedingRecord extends BaseDocument {
   evening_fed_note?: string;
   food_type?: string;
   quantity?: string;
-  animal_id?: string;
+  food_intake_scale?: 'Less' | 'Moderate' | 'Complete';
+  animal_ids?: string[];
   notes?: string;
 }
 

@@ -7,6 +7,7 @@ import { inventoryRecordsService, InventoryRecord } from '../services/firebaseSe
 
 const InventoryPage: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<InventoryRecord | null>(null);
   const [formType, setFormType] = useState<'inward' | 'outward'>('inward');
   const [records, setRecords] = useState<InventoryRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -32,7 +33,14 @@ const InventoryPage: React.FC = () => {
 
   const handleFormSubmit = () => {
     setShowForm(false);
+    setEditingRecord(null);
     fetchRecords();
+  };
+
+  const handleEdit = (record: InventoryRecord) => {
+    setEditingRecord(record);
+    setFormType(record.type);
+    setShowForm(true);
   };
 
   if (isLoading) {
@@ -112,6 +120,12 @@ const InventoryPage: React.FC = () => {
                       <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                         Type
                       </th>
+                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                        Expected Return
+                      </th>
+                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                        Actual Return
+                      </th>
                       <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                         <span className="sr-only">Actions</span>
                       </th>
@@ -147,11 +161,33 @@ const InventoryPage: React.FC = () => {
                             {record.type}
                           </span>
                         </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          {record.type === 'outward' && record.expected_return_date ? (
+                            new Date(record.expected_return_date).toLocaleDateString()
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          {record.type === 'outward' && record.actual_return_date ? (
+                            <span className="text-green-600 font-medium">
+                              {new Date(record.actual_return_date).toLocaleDateString()}
+                            </span>
+                          ) : record.type === 'outward' ? (
+                            <span className="text-orange-600 font-medium">Pending</span>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
                         <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                           <button className="text-primary-600 hover:text-primary-900 mr-3">
                             <Eye className="h-4 w-4" />
                           </button>
-                          <button className="text-primary-600 hover:text-primary-900">
+                          <button 
+                            onClick={() => handleEdit(record)}
+                            className="text-primary-600 hover:text-primary-900"
+                            title="Edit Record"
+                          >
                             <Pencil className="h-4 w-4" />
                           </button>
                         </td>
@@ -170,7 +206,7 @@ const InventoryPage: React.FC = () => {
           <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-white rounded-lg shadow-xl">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
               <h2 className="text-xl font-semibold text-gray-900">
-                New {formType === 'inward' ? 'Inward' : 'Outward'} Record
+                {editingRecord ? 'Edit' : 'New'} {formType === 'inward' ? 'Inward' : 'Outward'} Record
               </h2>
               <button
                 onClick={() => setShowForm(false)}
@@ -180,9 +216,25 @@ const InventoryPage: React.FC = () => {
               </button>
             </div>
             {formType === 'inward' ? (
-              <InwardForm onSubmit={handleFormSubmit} onClose={() => setShowForm(false)} />
+              <InwardForm 
+                onSubmit={handleFormSubmit} 
+                onClose={() => {
+                  setShowForm(false);
+                  setEditingRecord(null);
+                }}
+                inventoryRecord={editingRecord}
+                isEditMode={!!editingRecord}
+              />
             ) : (
-              <OutwardForm onSubmit={handleFormSubmit} onClose={() => setShowForm(false)} />
+              <OutwardForm 
+                onSubmit={handleFormSubmit} 
+                onClose={() => {
+                  setShowForm(false);
+                  setEditingRecord(null);
+                }}
+                inventoryRecord={editingRecord}
+                isEditMode={!!editingRecord}
+              />
             )}
           </div>
         </div>

@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 const MediaPage: React.FC = () => {
   const { user, hasModuleAccess } = useAuth();
   const [showMediaForm, setShowMediaForm] = useState(false);
+  const [editingMedia, setEditingMedia] = useState<MediaRecord | null>(null);
   const [selectedMedia, setSelectedMedia] = useState<MediaRecord | null>(null);
   const [mediaRecords, setMediaRecords] = useState<MediaRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,7 +53,13 @@ const MediaPage: React.FC = () => {
 
   const handleFormSubmit = () => {
     setShowMediaForm(false);
+    setEditingMedia(null);
     fetchRecords();
+  };
+
+  const handleEdit = (record: MediaRecord) => {
+    setEditingMedia(record);
+    setShowMediaForm(true);
   };
 
   if (isLoading) {
@@ -155,7 +162,11 @@ const MediaPage: React.FC = () => {
                           <button className="text-primary-600 hover:text-primary-900 mr-3">
                             <Eye className="h-4 w-4" />
                           </button>
-                          <button className="text-primary-600 hover:text-primary-900">
+                          <button 
+                            onClick={() => handleEdit(record)}
+                            className="text-primary-600 hover:text-primary-900"
+                            title="Edit Record"
+                          >
                             <Pencil className="h-4 w-4" />
                           </button>
                         </td>
@@ -173,7 +184,9 @@ const MediaPage: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="w-full max-w-7xl max-h-[90vh] overflow-y-auto bg-white rounded-lg shadow-xl">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900">New Media Record</h2>
+              <h2 className="text-xl font-semibold text-gray-900">
+                {editingMedia ? 'Edit Media Record' : 'New Media Record'}
+              </h2>
               <button
                 onClick={() => setShowMediaForm(false)}
                 className="text-gray-400 hover:text-gray-500"
@@ -181,7 +194,15 @@ const MediaPage: React.FC = () => {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <MediaForm onSubmit={handleFormSubmit} onClose={() => setShowMediaForm(false)} />
+            <MediaForm 
+              onSubmit={handleFormSubmit} 
+              onClose={() => {
+                setShowMediaForm(false);
+                setEditingMedia(null);
+              }}
+              mediaRecord={editingMedia}
+              isEditMode={!!editingMedia}
+            />
           </div>
         </div>
       )}

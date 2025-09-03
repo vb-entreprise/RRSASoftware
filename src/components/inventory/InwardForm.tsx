@@ -7,17 +7,19 @@ import timeZoneService from '../../services/timeZoneService';
 interface InwardFormProps {
   onSubmit: () => void;
   onClose: () => void;
+  inventoryRecord?: any;
+  isEditMode?: boolean;
 }
 
-const InwardForm: React.FC<InwardFormProps> = ({ onSubmit, onClose }) => {
+const InwardForm: React.FC<InwardFormProps> = ({ onSubmit, onClose, inventoryRecord, isEditMode = false }) => {
   const [formData, setFormData] = useState({
-    dateTime: timeZoneService.getCurrentDateTimeForInput(),
-    givenBy: '',
-    receivedBy: '',
-    itemName: '',
-    quantity: '',
-    placedAt: '',
-    notes: ''
+    dateTime: inventoryRecord?.date_time || timeZoneService.getCurrentDateTimeForInput(),
+    givenBy: inventoryRecord?.given_by || '',
+    receivedBy: inventoryRecord?.received_by || '',
+    itemName: inventoryRecord?.item_name || '',
+    quantity: inventoryRecord?.quantity?.toString() || '',
+    placedAt: inventoryRecord?.placed_at || '',
+    notes: inventoryRecord?.notes || ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,16 +45,31 @@ const InwardForm: React.FC<InwardFormProps> = ({ onSubmit, onClose }) => {
     setError(null);
 
     try {
-      await inventoryRecordsService.create({
-        date_time: formData.dateTime,
-        given_by: formData.givenBy,
-        received_by: formData.receivedBy,
-        item_name: formData.itemName,
-        quantity: parseInt(formData.quantity),
-        placed_at: formData.placedAt,
-        type: 'inward',
-        notes: formData.notes
-      });
+      if (isEditMode && inventoryRecord?.id) {
+        // Update existing record
+        await inventoryRecordsService.update(inventoryRecord.id, {
+          date_time: formData.dateTime,
+          given_by: formData.givenBy,
+          received_by: formData.receivedBy,
+          item_name: formData.itemName,
+          quantity: parseInt(formData.quantity),
+          placed_at: formData.placedAt,
+          type: 'inward',
+          notes: formData.notes
+        });
+      } else {
+        // Create new record
+        await inventoryRecordsService.create({
+          date_time: formData.dateTime,
+          given_by: formData.givenBy,
+          received_by: formData.receivedBy,
+          item_name: formData.itemName,
+          quantity: parseInt(formData.quantity),
+          placed_at: formData.placedAt,
+          type: 'inward',
+          notes: formData.notes
+        });
+      }
       
       onSubmit();
     } catch (error) {

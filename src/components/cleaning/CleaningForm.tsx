@@ -23,6 +23,8 @@ interface FormData {
 interface CleaningFormProps {
   onSubmit: () => void;
   onClose: () => void;
+  cleaningRecord?: any;
+  isEditMode?: boolean;
 }
 
 const CLEANING_AREAS = [
@@ -47,20 +49,20 @@ const CLEANING_AREAS = [
   { id: 'outer_space', name: 'Outer Space' }
 ];
 
-const CleaningForm: React.FC<CleaningFormProps> = ({ onSubmit, onClose }) => {
+const CleaningForm: React.FC<CleaningFormProps> = ({ onSubmit, onClose, cleaningRecord, isEditMode = false }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [users, setUsers] = useState<UserType[]>([]);
   const [formData, setFormData] = useState<FormData>({
-    date: timeZoneService.getCurrentDateForInput(),
-    time: timeZoneService.getCurrentTimeForInput(),
+    date: cleaningRecord?.date || timeZoneService.getCurrentDateForInput(),
+    time: cleaningRecord?.time || timeZoneService.getCurrentTimeForInput(),
     areas: CLEANING_AREAS.map(area => ({
       id: area.id,
       name: area.name,
-      cleaned: false,
-      cleanedBy: '',
-      cleaningScale: '',
-      remarks: ''
+      cleaned: cleaningRecord?.areas?.find((a: any) => a.name === area.name)?.cleaned || false,
+      cleanedBy: cleaningRecord?.areas?.find((a: any) => a.name === area.name)?.cleanedBy || '',
+      cleaningScale: cleaningRecord?.areas?.find((a: any) => a.name === area.name)?.cleaningScale || '',
+      remarks: cleaningRecord?.areas?.find((a: any) => a.name === area.name)?.remarks || ''
     }))
   });
 
@@ -100,17 +102,27 @@ const CleaningForm: React.FC<CleaningFormProps> = ({ onSubmit, onClose }) => {
         return;
       }
 
-      await Promise.all(cleanedAreas.map(area => 
-        cleaningRecordsService.create({
+      if (isEditMode && cleaningRecord?.id) {
+        // Update existing record
+        await cleaningRecordsService.update(cleaningRecord.id, {
           date: formData.date,
           time: formData.time,
-          area: area.name,
-          cleaned: true,
-          cleaned_by: area.cleanedBy,
-          cleaning_level: area.cleaningScale,
-          notes: area.remarks
-        })
-      ));
+          areas: cleanedAreas
+        });
+      } else {
+        // Create new records
+        await Promise.all(cleanedAreas.map(area => 
+          cleaningRecordsService.create({
+            date: formData.date,
+            time: formData.time,
+            area: area.name,
+            cleaned: true,
+            cleaned_by: area.cleanedBy,
+            cleaning_level: area.cleaningScale,
+            notes: area.remarks
+          })
+        ));
+      }
       
       onSubmit();
     } catch (error) {
@@ -281,7 +293,7 @@ const CleaningForm: React.FC<CleaningFormProps> = ({ onSubmit, onClose }) => {
             isLoading={isLoading}
             className="w-full sm:w-auto justify-center"
           >
-            {isLoading ? 'Saving Records...' : 'Save Records'}
+            {isLoading ? 'Saving Records...' : isEditMode ? 'Update Records' : 'Save Records'}
           </Button>
         </div>
       </form>

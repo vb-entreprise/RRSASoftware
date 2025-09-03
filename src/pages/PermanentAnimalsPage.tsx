@@ -9,11 +9,13 @@ const PermanentAnimalsPage: React.FC = () => {
   const { user, hasPermission } = useAuth();
   const [permanentAnimals, setPermanentAnimals] = useState<PermanentAnimal[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingAnimal, setEditingAnimal] = useState<PermanentAnimal | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const canAddRecords = hasPermission('Animal Care', 'Add Care Records');
   const canViewRecords = hasPermission('Animal Care', 'View Care Records');
+  const canEditRecords = hasPermission('Animal Care', 'Edit Care Records');
 
   useEffect(() => {
     if (canViewRecords) {
@@ -37,7 +39,13 @@ const PermanentAnimalsPage: React.FC = () => {
 
   const handleFormSubmit = () => {
     setIsFormOpen(false);
+    setEditingAnimal(null);
     fetchPermanentAnimals();
+  };
+
+  const handleEditAnimal = (animal: PermanentAnimal) => {
+    setEditingAnimal(animal);
+    setIsFormOpen(true);
   };
 
   if (!canViewRecords) {
@@ -161,6 +169,11 @@ const PermanentAnimalsPage: React.FC = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
+                    {canEditRecords && (
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -233,6 +246,19 @@ const PermanentAnimalsPage: React.FC = () => {
                           </span>
                         )}
                       </td>
+                      {canEditRecords && (
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <button
+                            onClick={() => handleEditAnimal(animal)}
+                            className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-50 transition-colors"
+                            title="Edit animal record"
+                          >
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -330,9 +356,14 @@ const PermanentAnimalsPage: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="w-full max-w-7xl max-h-[90vh] overflow-y-auto bg-white rounded-lg shadow-xl">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900">Add Permanent Animal Record</h2>
+              <h2 className="text-xl font-semibold text-gray-900">
+                {editingAnimal ? 'Edit Permanent Animal Record' : 'Add Permanent Animal Record'}
+              </h2>
               <button
-                onClick={() => setIsFormOpen(false)}
+                onClick={() => {
+                  setIsFormOpen(false);
+                  setEditingAnimal(null);
+                }}
                 className="text-gray-400 hover:text-gray-500"
               >
                 <X className="h-5 w-5" />
@@ -340,7 +371,12 @@ const PermanentAnimalsPage: React.FC = () => {
             </div>
             <PermanentAnimalForm
               onSubmit={handleFormSubmit}
-              onClose={() => setIsFormOpen(false)}
+              onClose={() => {
+                setIsFormOpen(false);
+                setEditingAnimal(null);
+              }}
+              animal={editingAnimal}
+              isEditMode={!!editingAnimal}
             />
           </div>
         </div>

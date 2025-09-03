@@ -6,6 +6,7 @@ import { cleaningRecordsService, CleaningRecord } from '../services/firebaseServ
 
 const CleaningPage: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<CleaningRecord | null>(null);
   const [records, setRecords] = useState<CleaningRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +31,13 @@ const CleaningPage: React.FC = () => {
 
   const handleFormSubmit = () => {
     setShowForm(false);
+    setEditingRecord(null);
     fetchRecords();
+  };
+
+  const handleEdit = (record: CleaningRecord) => {
+    setEditingRecord(record);
+    setShowForm(true);
   };
 
   if (isLoading) {
@@ -120,7 +127,11 @@ const CleaningPage: React.FC = () => {
                           <button className="text-primary-600 hover:text-primary-900 mr-3">
                             <Eye className="h-4 w-4" />
                           </button>
-                          <button className="text-primary-600 hover:text-primary-900">
+                          <button 
+                            onClick={() => handleEdit(record)}
+                            className="text-primary-600 hover:text-primary-900"
+                            title="Edit Record"
+                          >
                             <Pencil className="h-4 w-4" />
                           </button>
                         </td>
@@ -138,7 +149,9 @@ const CleaningPage: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="w-full max-w-7xl max-h-[90vh] overflow-y-auto bg-white rounded-lg shadow-xl">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900">New Cleaning Record</h2>
+              <h2 className="text-xl font-semibold text-gray-900">
+                {editingRecord ? 'Edit Cleaning Record' : 'New Cleaning Record'}
+              </h2>
               <button
                 onClick={() => setShowForm(false)}
                 className="text-gray-400 hover:text-gray-500"
@@ -146,7 +159,15 @@ const CleaningPage: React.FC = () => {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <CleaningForm onSubmit={handleFormSubmit} onClose={() => setShowForm(false)} />
+            <CleaningForm 
+              onSubmit={handleFormSubmit} 
+              onClose={() => {
+                setShowForm(false);
+                setEditingRecord(null);
+              }}
+              cleaningRecord={editingRecord}
+              isEditMode={!!editingRecord}
+            />
           </div>
         </div>
       )}

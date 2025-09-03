@@ -6,46 +6,75 @@ import timeZoneService from '../../services/timeZoneService';
 interface PermanentAnimalFormProps {
   onSubmit: () => void;
   onClose: () => void;
+  animal?: PermanentAnimal | null;
+  isEditMode?: boolean;
 }
 
-const PermanentAnimalForm: React.FC<PermanentAnimalFormProps> = ({ onSubmit, onClose }) => {
+const PermanentAnimalForm: React.FC<PermanentAnimalFormProps> = ({ onSubmit, onClose, animal, isEditMode }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [formData, setFormData] = useState({
-    animalType: '',
-    name: '',
-    sex: '',
-    age: '',
-    admittedDate: timeZoneService.getCurrentDateForInput(),
+    animalType: animal ? animal.animal_type : '',
+    name: animal ? animal.name : '',
+    sex: animal ? animal.sex : '',
+    age: animal ? animal.age : '',
+    admittedDate: animal ? animal.admitted_date : timeZoneService.getCurrentDateForInput(),
     
     // Health & Hygiene Records
-    vaccinationDate: '',
-    nextVaccinationDue: '',
-    dewormingDate: '',
-    nextDewormingDue: '',
-    bathingDate: '',
-    tickTreatmentDate: '',
-    fastingDate: '',
+    vaccinationDate: animal ? animal.vaccination_date || '' : '',
+    nextVaccinationDue: animal ? animal.next_vaccination_due || '' : '',
+    dewormingDate: animal ? animal.deworming_date || '' : '',
+    nextDewormingDue: animal ? animal.next_deworming_due || '' : '',
+    bathingDate: animal ? animal.bathing_date || '' : '',
+    tickTreatmentDate: animal ? animal.tick_treatment_date || '' : '',
+    fastingDate: animal ? animal.fasting_date || '' : '',
     
     // Adoption Details
-    adoptionDate: '',
-    adoptedBy: '',
-    contact: '',
-    address: '',
-    aadharCopy: '',
+    adoptionDate: animal ? animal.adoption_date || '' : '',
+    adoptedBy: animal ? animal.adopted_by || '' : '',
+    contact: animal ? animal.contact || '' : '',
+    address: animal ? animal.address || '' : '',
+    aadharCopy: animal ? animal.aadhar_copy || '' : '',
     
     // End-of-Life Record
-    demiseDate: '',
-    demiseReason: '',
+    demiseDate: animal ? animal.demise_date || '' : '',
+    demiseReason: animal ? animal.demise_reason || '' : '',
     
     // Remarks
-    remarks: ''
+    remarks: animal ? animal.remarks || '' : ''
   });
 
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  useEffect(() => {
+    if (animal && isEditMode) {
+      setFormData({
+        animalType: animal.animal_type,
+        name: animal.name,
+        sex: animal.sex,
+        age: animal.age,
+        admittedDate: animal.admitted_date,
+        vaccinationDate: animal.vaccination_date || '',
+        nextVaccinationDue: animal.next_vaccination_due || '',
+        dewormingDate: animal.deworming_date || '',
+        nextDewormingDue: animal.next_deworming_due || '',
+        bathingDate: animal.bathing_date || '',
+        tickTreatmentDate: animal.tick_treatment_date || '',
+        fastingDate: animal.fasting_date || '',
+        adoptionDate: animal.adoption_date || '',
+        adoptedBy: animal.adopted_by || '',
+        contact: animal.contact || '',
+        address: animal.address || '',
+        aadharCopy: animal.aadhar_copy || '',
+        demiseDate: animal.demise_date || '',
+        demiseReason: animal.demise_reason || '',
+        remarks: animal.remarks || ''
+      });
+    }
+  }, [animal, isEditMode]);
 
   const fetchUsers = async () => {
     try {
@@ -63,7 +92,7 @@ const PermanentAnimalForm: React.FC<PermanentAnimalFormProps> = ({ onSubmit, onC
     setError(null);
 
     try {
-      await permanentAnimalsService.create({
+      const animalData = {
         animal_type: formData.animalType,
         name: formData.name,
         sex: formData.sex,
@@ -84,12 +113,18 @@ const PermanentAnimalForm: React.FC<PermanentAnimalFormProps> = ({ onSubmit, onC
         demise_date: formData.demiseDate,
         demise_reason: formData.demiseReason,
         remarks: formData.remarks
-      });
+      };
+
+      if (isEditMode && animal?.id) {
+        await permanentAnimalsService.update(animal.id, animalData);
+      } else {
+        await permanentAnimalsService.create(animalData);
+      }
       
       onSubmit();
     } catch (error) {
-      console.error('Error creating permanent animal record:', error);
-      setError('Failed to create permanent animal record. Please try again.');
+      console.error(`Error ${isEditMode ? 'updating' : 'creating'} permanent animal record:`, error);
+      setError(`Failed to ${isEditMode ? 'update' : 'create'} permanent animal record. Please try again.`);
     } finally {
       setIsLoading(false);
     }
@@ -512,7 +547,10 @@ const PermanentAnimalForm: React.FC<PermanentAnimalFormProps> = ({ onSubmit, onC
                   <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                   </svg>
-                  {isLoading ? 'Saving Animal Record...' : 'Save Animal Record'}
+                  {isLoading 
+                    ? (isEditMode ? 'Updating Animal Record...' : 'Saving Animal Record...') 
+                    : (isEditMode ? 'Update Animal Record' : 'Save Animal Record')
+                  }
                 </Button>
               </div>
             </div>

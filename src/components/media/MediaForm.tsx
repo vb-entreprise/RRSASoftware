@@ -7,21 +7,23 @@ import timeZoneService from '../../services/timeZoneService';
 interface MediaFormProps {
   onSubmit: () => void;
   onClose: () => void;
+  mediaRecord?: any;
+  isEditMode?: boolean;
 }
 
-const MediaForm: React.FC<MediaFormProps> = ({ onSubmit, onClose }) => {
+const MediaForm: React.FC<MediaFormProps> = ({ onSubmit, onClose, mediaRecord, isEditMode = false }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [casePapers, setCasePapers] = useState<CasePaper[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [formData, setFormData] = useState({
-    caseId: '',
-    mediaType: '',
-    dateTime: timeZoneService.getCurrentDateTimeForInput(),
-    byWhom: '',
-    driveLink: '',
-    title: '',
-    description: ''
+    caseId: mediaRecord?.case_id || '',
+    mediaType: mediaRecord?.type || '',
+    dateTime: mediaRecord?.date_time || timeZoneService.getCurrentDateTimeForInput(),
+    byWhom: mediaRecord?.uploaded_by || '',
+    driveLink: mediaRecord?.drive_link || '',
+    title: mediaRecord?.title || '',
+    description: mediaRecord?.description || ''
   });
 
   useEffect(() => {
@@ -55,15 +57,29 @@ const MediaForm: React.FC<MediaFormProps> = ({ onSubmit, onClose }) => {
     setError(null);
 
     try {
-      await mediaRecordsService.create({
-        case_id: formData.caseId,
-        date_time: formData.dateTime,
-        title: formData.title,
-        description: formData.description,
-        type: formData.mediaType,
-        uploaded_by: formData.byWhom,
-        drive_link: formData.driveLink
-      });
+      if (isEditMode && mediaRecord?.id) {
+        // Update existing record
+        await mediaRecordsService.update(mediaRecord.id, {
+          case_id: formData.caseId,
+          date_time: formData.dateTime,
+          title: formData.title,
+          description: formData.description,
+          type: formData.mediaType,
+          uploaded_by: formData.byWhom,
+          drive_link: formData.driveLink
+        });
+      } else {
+        // Create new record
+        await mediaRecordsService.create({
+          case_id: formData.caseId,
+          date_time: formData.dateTime,
+          title: formData.title,
+          description: formData.description,
+          type: formData.mediaType,
+          uploaded_by: formData.byWhom,
+          drive_link: formData.driveLink
+        });
+      }
       
       onSubmit();
     } catch (error) {
@@ -93,7 +109,9 @@ const MediaForm: React.FC<MediaFormProps> = ({ onSubmit, onClose }) => {
             </svg>
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">New Media Record</h2>
+            <h2 className="text-xl font-semibold text-gray-900">
+              {isEditMode ? 'Edit Media Record' : 'New Media Record'}
+            </h2>
             <p className="text-sm text-gray-600">Upload and document media files for case management</p>
           </div>
         </div>
@@ -322,7 +340,7 @@ const MediaForm: React.FC<MediaFormProps> = ({ onSubmit, onClose }) => {
                   <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                   </svg>
-                  {isLoading ? 'Uploading Media Record...' : 'Submit Media Record'}
+                  {isLoading ? 'Uploading Media Record...' : isEditMode ? 'Update Media Record' : 'Submit Media Record'}
                 </Button>
               </div>
             </div>

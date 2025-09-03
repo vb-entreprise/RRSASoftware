@@ -6,9 +6,11 @@ import {
   feedingRecordsService, 
   usersService, 
   weeklyMenusService,
+  permanentAnimalsService,
   User as UserType,
   WeeklyMenu,
-  FeedingRecord
+  FeedingRecord,
+  PermanentAnimal
 } from '../../services/firebaseService';
 import timeZoneService from '../../services/timeZoneService';
 
@@ -22,20 +24,24 @@ const FeedingRecordForm: React.FC<FeedingRecordFormProps> = ({ onSubmit, onClose
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [users, setUsers] = useState<UserType[]>([]);
+  const [permanentAnimals, setPermanentAnimals] = useState<PermanentAnimal[]>([]);
   const [currentMenu, setCurrentMenu] = useState<WeeklyMenu | null>(null);
   const [formData, setFormData] = useState({
     date: editingRecord ? editingRecord.date : '',
     feedingTime: editingRecord ? editingRecord.feeding_time : timeZoneService.getCurrentDateTimeForInput(),
+    animalIds: editingRecord ? (editingRecord.animal_ids || []) : [] as string[],
     fedBy: editingRecord ? editingRecord.fed_by.split(', ').filter(name => name.trim()) : [] as string[],
     morningFed: editingRecord ? editingRecord.morning_fed : false,
     eveningFed: editingRecord ? editingRecord.evening_fed : false,
     morningFedNote: editingRecord ? editingRecord.morning_fed_note || '' : '',
     eveningFedNote: editingRecord ? editingRecord.evening_fed_note || '' : '',
+    foodIntakeScale: editingRecord ? editingRecord.food_intake_scale || '' : '',
     notes: editingRecord ? editingRecord.notes || '' : ''
   });
 
   useEffect(() => {
     fetchUsers();
+    fetchPermanentAnimals();
     fetchCurrentWeekMenu();
   }, []);
 
@@ -46,6 +52,16 @@ const FeedingRecordForm: React.FC<FeedingRecordFormProps> = ({ onSubmit, onClose
     } catch (err) {
       console.error('Error fetching users:', err);
       setError('Failed to fetch users list');
+    }
+  };
+
+  const fetchPermanentAnimals = async () => {
+    try {
+      const fetchedAnimals = await permanentAnimalsService.getAll();
+      setPermanentAnimals(fetchedAnimals);
+    } catch (err) {
+      console.error('Error fetching permanent animals:', err);
+      // Don't set error for animals fetch failure as it's not critical
     }
   };
 
@@ -74,10 +90,16 @@ const FeedingRecordForm: React.FC<FeedingRecordFormProps> = ({ onSubmit, onClose
     return dayMenu[mealType] || null;
   };
 
+  const getSelectedAnimalNames = () => {
+    if (!formData.animalIds.length) return '';
+    const selectedAnimals = permanentAnimals.filter(a => formData.animalIds.includes(a.id!));
+    return selectedAnimals.map(animal => `${animal.name} (${animal.animal_type})`).join(', ');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.date || !formData.feedingTime || formData.fedBy.length === 0) {
+    if (!formData.date || !formData.feedingTime || formData.animalIds.length === 0 || formData.fedBy.length === 0 || !formData.foodIntakeScale) {
       setError('Please fill in all required fields');
       return;
     }
@@ -91,11 +113,13 @@ const FeedingRecordForm: React.FC<FeedingRecordFormProps> = ({ onSubmit, onClose
         await feedingRecordsService.update(editingRecord.id, {
           date: formData.date,
           feeding_time: formData.feedingTime,
+          animal_ids: formData.animalIds,
           fed_by: formData.fedBy.join(', '), // Join multiple names with comma
           morning_fed: formData.morningFed,
           evening_fed: formData.eveningFed,
           morning_fed_note: formData.morningFedNote,
           evening_fed_note: formData.eveningFedNote,
+          food_intake_scale: formData.foodIntakeScale,
           notes: formData.notes
         });
       } else {
@@ -103,11 +127,13 @@ const FeedingRecordForm: React.FC<FeedingRecordFormProps> = ({ onSubmit, onClose
         await feedingRecordsService.create({
           date: formData.date,
           feeding_time: formData.feedingTime,
+          animal_ids: formData.animalIds,
           fed_by: formData.fedBy.join(', '), // Join multiple names with comma
           morning_fed: formData.morningFed,
           evening_fed: formData.eveningFed,
           morning_fed_note: formData.morningFedNote,
           evening_fed_note: formData.eveningFedNote,
+          food_intake_scale: formData.foodIntakeScale,
           notes: formData.notes
         });
       }
@@ -135,6 +161,15 @@ const FeedingRecordForm: React.FC<FeedingRecordFormProps> = ({ onSubmit, onClose
       fedBy: checked 
         ? [...prev.fedBy, userName]
         : prev.fedBy.filter(name => name !== userName)
+    }));
+  };
+
+  const handleAnimalCheckboxChange = (animalId: string, checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      animalIds: checked 
+        ? [...prev.animalIds, animalId]
+        : prev.animalIds.filter(id => id !== animalId)
     }));
   };
 
@@ -188,6 +223,39 @@ const FeedingRecordForm: React.FC<FeedingRecordFormProps> = ({ onSubmit, onClose
               name="feedingTime"
               required
             />
+
+            <div className="sm:col-span-2">
+              <div className="flex items-start space-x-2 mb-4">
+                <svg className="h-5 w-5 text-gray-400 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Animals * (Select all animals being fed)
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-48 overflow-y-auto border border-gray-200 rounded-md p-3 bg-gray-50">
+                    {permanentAnimals.map((animal) => (
+                      <label key={animal.id} className="flex items-center space-x-2 p-2 hover:bg-white rounded cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.animalIds.includes(animal.id!)}
+                          onChange={(e) => handleAnimalCheckboxChange(animal.id!, e.target.checked)}
+                          className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                        />
+                        <span className="text-sm text-gray-700">
+                          {animal.name} ({animal.animal_type}) - {animal.sex}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                  {formData.animalIds.length > 0 && (
+                    <p className="mt-2 text-xs text-gray-500">
+                      Selected: {getSelectedAnimalNames()}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
 
             <div className="sm:col-span-2">
               <div className="flex items-start space-x-2 mb-4">
@@ -316,6 +384,46 @@ const FeedingRecordForm: React.FC<FeedingRecordFormProps> = ({ onSubmit, onClose
           </div>
         </div>
 
+        {/* Food Intake Scale */}
+        <div className="bg-yellow-50 p-6 rounded-lg border border-yellow-200">
+          <h3 className="text-lg font-semibold text-yellow-900 mb-4 flex items-center space-x-2">
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m6 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01" />
+            </svg>
+            <span>Food Intake Scale</span>
+          </h3>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              How much did the animals eat? *
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                { value: 'Less', label: 'Less', description: 'Animals ate very little or refused food', color: 'bg-red-100 text-red-800 border-red-200' },
+                { value: 'Moderate', label: 'Moderate', description: 'Animals ate about half of the food', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+                { value: 'Complete', label: 'Complete', description: 'Animals ate all or most of the food', color: 'bg-green-100 text-green-800 border-green-200' }
+              ].map((option) => (
+                <label key={option.value} className="flex items-start space-x-3 p-4 border rounded-lg cursor-pointer hover:bg-white transition-colors">
+                  <input
+                    type="radio"
+                    name="foodIntakeScale"
+                    value={option.value}
+                    checked={formData.foodIntakeScale === option.value}
+                    onChange={handleInputChange}
+                    className="mt-1 text-primary-600 focus:ring-primary-500"
+                  />
+                  <div className="flex-1">
+                    <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${option.color} mb-2`}>
+                      {option.label}
+                    </div>
+                    <p className="text-sm text-gray-600">{option.description}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* Notes */}
         <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
@@ -348,7 +456,7 @@ const FeedingRecordForm: React.FC<FeedingRecordFormProps> = ({ onSubmit, onClose
             type="submit"
             variant="primary"
             isLoading={isLoading}
-            disabled={!formData.date || !formData.feedingTime || formData.fedBy.length === 0}
+            disabled={!formData.date || !formData.feedingTime || formData.animalIds.length === 0 || formData.fedBy.length === 0 || !formData.foodIntakeScale}
           >
             {isLoading 
               ? (editingRecord ? 'Updating Record...' : 'Saving Record...') 
